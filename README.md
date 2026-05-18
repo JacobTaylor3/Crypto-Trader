@@ -1,18 +1,26 @@
-# Crypto Swing Trading Bot
+# Crypto Trading Bot
 
-A Python-based daily swing trading bot for Binance spot markets using EMA 50/200 trend-following and RSI-based entry/exit signals.
+A Python-based automated trading bot for Binance spot markets. Supports multiple strategies — currently running the EMA/RSI swing strategy, with Dual Momentum planned next.
 
 > **WARNING: `DRY_RUN = True` is the default. The bot will NOT place real orders until you explicitly set `DRY_RUN = False` in `config.py`. Run the backtester and paper-trade for at least 2–4 weeks before touching real capital.**
 
 ---
 
-## Strategy
+## Strategies
 
+### Swing (EMA + RSI) — Current
 - **Trend filter**: EMA 50 must be above EMA 200 (uptrend confirmed)
-- **Entry**: RSI < 42 (short-term pullback — not chasing)
-- **Take-profit**: RSI > 65 (overbought)
-- **Stop-loss**: Close drops 4% below entry price
+- **Entry**: RSI < 35–40 depending on coin (short-term pullback)
+- **Take-profit**: RSI > 60–65 depending on coin (overbought)
+- **Stop-loss**: 4–8% below entry price depending on coin
 - **Exit on trend reversal**: EMA 50 crosses below EMA 200
+- Runs once daily at **00:15 UTC** after candle close
+- Backtested 2022–2026: ~+74% combined average across 4 coins
+
+### Dual Momentum — Planned
+- Every month, rotate 100% of capital into the strongest performing coin
+- Highest upside potential in bull markets
+- See `future-plans.md` for details
 
 ---
 
@@ -21,10 +29,9 @@ A Python-based daily swing trading bot for Binance spot markets using EMA 50/200
 ### 1. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install setuptools --break-system-packages
+pip install -r requirements.txt --break-system-packages
 ```
-
-> **Known issue**: `pandas-ta==0.3.14b` may not install cleanly on Python 3.12+. If you hit errors, try Python 3.10 or 3.11, or install from the GitHub source directly.
 
 ### 2. Create your `.env` file
 
@@ -40,29 +47,39 @@ Edit `.env` and paste your Binance API keys. US users: set `BINANCE_TLD=us`.
 
 Edit `config.py` to adjust:
 - `WATCHLIST` — pairs to monitor
-- `TRADE_AMOUNT_USDT` — fixed dollar size per trade
+- `TRADE_BALANCE_PCT` — fraction of free USDT to use per trade (default 25%)
+- `TRADE_AMOUNT_USDT` — minimum trade size fallback
 - `DRY_RUN` — keep `True` until you've validated the strategy
 - `BINANCE_TLD` — `'com'` (default) or `'us'`
 
 ---
 
-## Running the bot
+## Running the Swing Strategy
 
+**Live bot:**
 ```bash
-python main.py
+nohup python3 run_swing.py > logs/bot.log 2>&1 &
 ```
 
-Runs immediately, then schedules itself to run daily at **08:00 UTC** (shortly after the daily candle closes).
-
----
-
-## Running the backtester
-
+**Backtest:**
 ```bash
-python backtest_run.py
+python3 backtest_swing.py
 ```
 
-Runs a full historical backtest for every symbol in `WATCHLIST` from `BACKTEST_START`. Prints a summary table and saves a chart to `logs/{SYMBOL}_backtest.png`.
+**Parameter tuning:**
+```bash
+python3 tune.py
+```
+
+**Stop the bot:**
+```bash
+pkill -f run_swing.py
+```
+
+**Check activity:**
+```bash
+tail -f logs/trades.log
+```
 
 ---
 
@@ -73,22 +90,24 @@ Runs a full historical backtest for every symbol in `WATCHLIST` from `BACKTEST_S
 | `logs/trades.log` | Every BUY/SELL event with price, RSI, and P&L |
 | `logs/positions.json` | Currently open positions (persisted between runs) |
 | `logs/{SYMBOL}_backtest.png` | Backtest chart with trade markers |
+| `logs/bot.log` | Bot runtime output and errors |
 
 ---
 
 ## Project Structure
 
 ```
-├── config.py              # All configurable parameters
-├── main.py                # Bot entry point and scheduler
-├── backtest_run.py        # Backtest runner script
-├── data/fetcher.py        # Binance OHLCV data fetching
-├── signals/indicators.py  # EMA / RSI / ATR calculation
-├── strategy/swing.py      # Signal generation logic
-├── execution/             # Live order execution
-│   └── binance_client.py
-├── backtest/engine.py     # Walk-forward backtester + plotting
-├── logs/                  # Trade logs and charts
+├── config.py                  # All configurable parameters
+├── run_swing.py               # Swing strategy live bot
+├── backtest_swing.py          # Swing strategy backtester
+├── tune.py                    # Parameter grid search
+├── future-plans.md            # Roadmap for new strategies
+├── data/fetcher.py            # Binance OHLCV data fetching
+├── signals/indicators.py      # EMA / RSI / ATR calculation
+├── strategy/swing.py          # Swing signal generation logic
+├── execution/binance_client.py# Live order execution
+├── backtest/engine.py         # Walk-forward backtester + plotting
+├── logs/                      # Trade logs and charts
 └── requirements.txt
 ```
 
