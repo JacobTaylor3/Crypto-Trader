@@ -75,7 +75,7 @@ def _print_summary(rows):
 
 if __name__ == "__main__":
     run_bot()
-    schedule.every().day.at("08:00", "UTC").do(run_bot)
+    schedule.every().day.at("00:15", "UTC").do(run_bot)
     _log.info("Scheduler started — next run at 08:00 UTC daily.")
     while True:
         schedule.run_pending()
