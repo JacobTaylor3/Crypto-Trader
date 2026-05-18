@@ -1,0 +1,8 @@
+python-binance
+pandas>=2.1.0
+pandas-ta==0.4.71b0
+numpy
+matplotlib
+python-dotenv
+schedule
+requests
